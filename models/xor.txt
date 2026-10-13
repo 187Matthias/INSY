@@ -1,0 +1,7 @@
+layers 3
+sizes 2 2 1
+layer 1 neurons 2 inputs 2
+neuron 1 bias -6.8782864987 weights 4.4189489410 4.4199073121
+neuron 2 bias 2.2510696836 weights -5.9017529033 -5.9059065821
+layer 2 neurons 1 inputs 2
+neuron 1 bias 4.3310633832 weights -8.8741601202 -8.7157079379

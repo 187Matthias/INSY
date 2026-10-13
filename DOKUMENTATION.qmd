@@ -1,0 +1,223 @@
+---
+title: "Dokumentation: Neuronales Netz from scratch"
+subtitle: "4AHITS INSY, neuronales Netz in Python mit numpy"
+lang: de
+date: last-modified
+date-format: "DD.MM.YYYY"
+# Listen ohne Leerzeile davor trotzdem als Liste darstellen
+from: markdown+lists_without_preceding_blankline
+format:
+  html:
+    toc: true
+    toc-title: Inhalt
+    toc-depth: 3
+    theme: cosmo
+    code-copy: true
+    embed-resources: true
+    output-file: index.html
+---
+
+Stand: 2026-09-29. Aufgabe laut `4AHITS_NN_from_scratch.pdf` (Part 1–6), Ziel: XOR und 7-Segment-Decoder mit einem selbst gebauten Netz (nur `numpy`).
+
+## 1. Projektüberblick (vorgefundener Stand)
+
+| Datei | Inhalt |
+|---|---|
+| `4AHITS_NN_from_scratch.pdf` | Aufgabenstellung (14 Seiten): Backpropagation-Theorie + Part 1–6 |
+| `CLAUDE.md` | Projektregeln und Netz-Spezifikation |
+| `ki.py` | Erster Entwurf: `Neuron` (fehlerhaft), `Layer` (leer, Syntaxfehler) |
+
+Aufgabenübersicht aus dem PDF:
+- **Part 1:** `Neuron`, `Layer`, `NeuralNetwork`, forward/predict, backward/train, Export JSON / TXT / `.h`
+- **Part 2:** XOR (2-2-1) und 7-Segment-Decoder (4-16-7) trainieren, je 20000 Epochen, alpha = 0,1; exportieren, laden, testen
+- **Part 3–6:** TensorFlow-Vergleich, Forward-Only in C (aus `.txt` bzw. `.h`), Port auf ESP32
+
+## 2. Was ich gemacht habe
+
+### 2.1 PDF lesbar gemacht
+Im System fehlte eine PDF-Bibliothek. Ich habe eine virtuelle Umgebung `.venv` im Projektordner angelegt und darin `pypdf` und `numpy` installiert (nichts global). Das PDF wurde nur gelesen, nicht verändert.
+
+### 2.2 Fehler in `ki.py` gefunden und korrigiert
+Die korrigierte Version liegt in `nn/neuron.py`. `ki.py` selbst habe ich nicht verändert (Regel: nichts überschreiben ohne Rückfrage).
+
+| # | Alt | Problem | Neu |
+|---|---|---|---|
+| 1 | `1/(1+numpy.e^-x)` | `^` ist in Python XOR, keine Potenz -> TypeError | `1 / (1 + numpy.exp(-x))` |
+| 2 | `numpy.random(size=...)` | `numpy.random` ist ein Modul, nicht aufrufbar | `numpy.random.uniform(-1, 1, size=n)` |
+| 3 | `self.weights += lr * grad` | Falsches Vorzeichen; Gradient Descent geht *gegen* den Gradienten: `W_neu = W_alt - alpha * dJ/dW` | `-=` |
+| 4 | `update_weigths`, `gradiant` | Tippfehler; PDF/CLAUDE.md nennen eine `update()`-Methode | eine Methode `update(delta, learning_rate)` |
+| 5 | `class Layer:` ohne Körper | Syntaxfehler, Datei nicht lauffähig | `Layer` ist noch nicht implementiert (siehe 4) |
+
+### 2.3 Neue Dateien
+- `nn/neuron.py` – Klasse `Neuron`, `sigmoid`, `sigmoid_derivative`
+- `nn/__init__.py` – macht `nn` importierbar (`from nn import Neuron`)
+- `nn/layer.py` – Klasse `Layer` (siehe Abschnitt 5)
+- `nn/neural_network.py` – Klasse `NeuralNetwork` (Abschnitt 6)
+- `train_xor.py`, `test_xor.py`, `train_7seg.py`, `test_7seg.py` – Part 2 (Abschnitt 7)
+- `models/` – exportierte `.json`, `.txt`, `.h` Dateien
+- `web/index.html` – Website (Abschnitt 8)
+- `test_neuron.py`, `test_layer.py` – Tests
+- `DOKUMENTATION.qmd` – diese Datei (Quarto), `_quarto.yml` und `.github/workflows/pages.yml` für das Veröffentlichen (Abschnitt 12)
+
+## 3. Klasse `Neuron` erklärt
+
+```
+Neuron(num_inputs, activation_function=sigmoid, activation_function_d=sigmoid_derivative)
+```
+
+- **Felder:** `weights` (zufällig in [-1, 1]), `bias`, Aktivierungsfunktion + Ableitung, `inputs` und `output` der letzten Berechnung (fürs Backpropagation, wie im PDF gefordert).
+- **`activation(inputs)`** (Forward): `z = dot(inputs, weights) + bias`, `output = sigmoid(z)`; speichert Inputs und Output.
+- **`activation_d()`**: Ableitung dA/dZ. Für Sigmoid ist sie `a * (1 - a)` und wird aus dem gespeicherten Output berechnet (deshalb muss `output` gespeichert werden).
+- **`update(delta, learning_rate)`**: ein Gradient-Descent-Schritt. `delta` ist dJ/dZ. Nach der Kettenregel gilt:
+  - dJ/dW = dJ/dZ · dZ/dW = delta · inputs
+  - dJ/db = dJ/dZ · dZ/db = delta · 1
+  - `W -= alpha * delta * inputs`, `b -= alpha * delta`
+
+**Warum `delta` und nicht direkt der Gradient?** Der Layer berechnet `delta = Fehler * activation_d()` ohnehin, um den Fehler an die vorherige Schicht weiterzugeben. Das Neuron leitet daraus die Gradienten für seine Gewichte selbst ab.
+
+Vorschau, wie der `Layer` das später nutzt (Kostenfunktion J = ½(ŷ − y)², also dJ/dŷ = ŷ − y):
+1. Ausgabeschicht: `error = ŷ - y`; versteckte Schicht: `error = Σ delta_k · w_k` der nächsten Schicht
+2. `delta = error * neuron.activation_d()`
+3. **Erst** den Fehler für die vorherige Schicht mit den *alten* Gewichten berechnen, **dann** `neuron.update(delta, lr)` aufrufen.
+
+## 4. Tests (`test_neuron.py`)
+
+Ausführen: `.venv\Scripts\python.exe test_neuron.py`
+
+Ergebnis:
+```
+1) Ausgabe im Bereich (0,1): OK -> 0.05124637150231883
+2) Sigmoid-Ableitung: OK
+3) Gradient-Check: OK
+4) Update senkt Fehler: 0.450067 -> 0.448720: OK
+Alle Tests bestanden.
+```
+- Test 3 vergleicht den analytischen Gradienten mit einem numerisch berechneten (Differenzenquotient). Das ist die wichtigste Prüfung, dass die Kettenregel richtig umgesetzt ist.
+
+## 5. Klasse `Layer` (`nn/layer.py`)
+
+```
+Layer(num_neurons, num_inputs, activation_function=sigmoid, activation_function_d=sigmoid_derivative)
+```
+
+- **`forward(inputs)`**: Jedes Neuron bekommt dieselben Inputs, das Ergebnis ist ein Vektor mit einem Output pro Neuron.
+- **`backward(errors, learning_rate)`**: `errors[k]` = dJ/dA_k.
+  1. `delta_k = errors[k] * a_k * (1 - a_k)` (= dJ/dZ_k, Kettenregel)
+  2. Fehler für die vorherige Schicht: `dJ/dA_prev = Σ_k delta_k · w_k`
+  3. **Erst danach** `neuron.update(delta_k, learning_rate)` – der Fehler in Schritt 2 muss mit den *alten* Gewichten berechnet werden.
+  4. Rückgabe: `dJ/dA_prev`, das die vorherige Schicht als `errors` bekommt.
+- Für die letzte Schicht ist `errors = ŷ - y` (Ableitung von J = ½(ŷ − y)²); das übernimmt später `NeuralNetwork.train`.
+
+Tests: `.venv\Scripts\python.exe test_layer.py`
+```
+1) forward: Form und Wertebereich OK -> [0.72180589 0.33555519]
+2) Fehler an vorherige Schicht (Gradient-Check): OK
+3) Training senkt Fehler: 0.079410 -> 0.001800: OK
+Alle Tests bestanden.
+```
+Test 2 vergleicht den zurückgegebenen Fehler mit einem numerisch berechneten dJ/dx.
+
+## 6. Klasse `NeuralNetwork` (`nn/neural_network.py`)
+
+```
+NeuralNetwork(layer_sizes, learning_rate=0.1)      # z. B. [2, 2, 1]
+```
+- **`predict(inputs)`**: nur Forward-Pass durch alle Layer.
+- **`train(inputs, targets)`**: ein SGD-Schritt mit einem Sample. Forward, dann `errors = ŷ − y` (Ableitung von J = ½ Σ(ŷ − y)²), dann `backward` der Layer in umgekehrter Reihenfolge (jeder Layer gibt den Fehler an den vorherigen weiter). Rückgabe: Kosten J.
+- **`fit(samples, targets, epochs, shuffle=True, log_every=0)`**: Trainingsschleife, pro Epoche jedes Sample einmal in zufälliger Reihenfolge.
+- **Export/Import:**
+  - `dump_json(path)` / `load(path)` (auch `to_dict()` / `from_dict()`)
+  - `dump_txt(path)`: lesbar, pro Neuron eine Zeile `neuron j bias b weights w1 w2 ...` (Basis für die C-Version, Part 4)
+  - `dump_initfile(path, name)`: C-Header mit `const double`-Arrays für Bias und Gewichte jedes Layers (Part 5)
+
+## 7. Part 2: Training und Test
+
+| Skript | Aufgabe |
+|---|---|
+| `train_xor.py` | XOR, 2-2-1, 20000 Epochen, α = 0,1 -> `models/xor.json`, `.txt`, `xor_net.h` |
+| `test_xor.py` | lädt `xor.json`, prüft die 4 Eingaben und dass Export/Import die Vorhersagen nicht verändert |
+| `train_7seg.py` | 7-Segment-Decoder, 4-16-7, 20000 Epochen, α = 0,1 -> `models/7seg.json`, `.txt`, `7seg_net.h` |
+| `test_7seg.py` | lädt `7seg.json`, prüft die Ziffern 0–9 gegen die Soll-Segmente |
+
+Ergebnisse (`.venv\Scripts\python.exe train_xor.py` usw.):
+```
+XOR:  [0,0] -> 0.0276   [0,1] -> 0.9681   [1,0] -> 0.9681   [1,1] -> 0.0308   (Kosten 0.000469)
+7-Segment: 10/10 Ziffern korrekt (Kosten 0.000456)
+Export -> Import: Vorhersagen identisch (beide Netze)
+```
+Hinweis: Mit nur 2 Hidden-Neuronen kann XOR bei ungünstigen Startgewichten in einem lokalen Minimum hängen bleiben. `train_xor.py` startet dann mit neuem Seed neu (bei Seed 1 nicht nötig).
+Kodierung 7-Segment: Ziffer als 4 Bit (MSB zuerst) -> Segmente a b c d e f g, identisch zur Tabelle im PDF.
+
+## 8. Website zum Ausprobieren
+`web/index.html` ist eine einzelne Seite ohne Server. Die exportierten Gewichte beider Netze sind eingebettet, der Forward-Pass ist in JavaScript nachgebaut (geprüft: gleiche Werte wie Python, z. B. XOR [0,1] = 0.9681). Sie hat zwei Reiter:
+- **XOR:** zwei Regler für A und B, Ausgabe, Wahrheitstabelle, Netz-Diagramm mit Aktivierungen.
+- **7-Segment:** Ziffer oder einzelne Bits wählen, simulierte 7-Segment-Anzeige, Vergleich Netz/Soll pro Segment, Netz-Diagramm.
+
+Wenn die Gewichte neu trainiert werden, muss die Seite neu erzeugt werden (die JSON-Inhalte stehen fest im HTML).
+
+**Überarbeitung (Skill "redesign-existing-projects"):** Das Aussehen (Farben, Schriften, Layout) blieb unverändert. Geändert wurden nur Lücken aus dem Audit:
+- Vollständiger Dokumentkopf: `<!doctype html>`, `lang="de"`, `viewport`, Beschreibung, Favicon. Vorher lief die Seite im Quirks-Modus und hatte kein Handy-Layout.
+- Hover- und Klick-Rückmeldung (kurzes Eindrücken) mit sanfter Transition bei Reitern, Schnellwahl, Ziffern und Bits.
+- Bedienung per Tastatur: Tabellenzeilen im XOR-Reiter mit Tab/Enter/Leertaste, Pfeiltasten wechseln den Reiter, Skip-Link "Zum Inhalt springen".
+- Semantik: `<main>`, `aria-controls` und `role="tabpanel"` für die Reiter, `aria-live` für die XOR-Ausgabe.
+- Inline-Styles in CSS-Klassen verschoben, `[hidden]` abgesichert, `text-wrap: pretty` für Hinweistexte.
+- Geprüft in Chrome (headless): Screenshots beider Reiter, kein Überlauf auf schmalem Fenster, Reiterwechsel und Tastaturbedienung funktionieren, Werte unverändert (XOR [0,1] = 0.97).
+- **Hover auf Neuronen (beide Diagramme):** Ein Tooltip zeigt Name, Aktivierung und Bias des Neurons. Seine Verbindungen werden hervorgehoben, alle anderen abgedunkelt. Das Neuron bekommt einen Rand. Auf dem Handy funktioniert Antippen. Die dauerhaften Zahlen unter den Neuronen entfielen, weil sie sich im 7-Segment-Diagramm überlappten (damit ist der frühere offene Punkt erledigt). Geprüft: XOR-Output hebt 2 Linien hervor, Hidden 1 hebt 3 hervor, 7-Segment Hidden 3 hebt 11 hervor (4 ein, 7 aus), Bias-Werte stimmen mit der JSON überein.
+
+## 9. Fortschritt
+
+| Schritt | Status |
+|---|---|
+| Part 1, Step 1–3: `Neuron`, `Layer`, `NeuralNetwork`, forward/predict, backward/train | fertig, getestet |
+| Part 1, Step 4–6: JSON / TXT / `.h` Export | fertig (JSON geladen und geprüft; `.txt` und `.h` erzeugt, noch nicht in C getestet) |
+| Part 2: XOR und 7-Segment trainieren, exportieren, laden, testen | fertig |
+| Website zum Ausprobieren | fertig (Barrierefreiheit und Zustände überarbeitet) |
+| Part 3: TensorFlow-Vergleich | offen |
+| Part 4–5: Forward-Only in C (`.txt` bzw. `.h`) | offen |
+| Part 6: ESP32 | offen |
+
+## 10. Nächste Schritte
+1. Optional: Tests für `NeuralNetwork` (z. B. Gradient-Check über mehrere Layer)
+2. Part 3: dieselben Netze mit TensorFlow (nur zum Vergleich, in eigener Umgebung)
+3. Part 4–5: C-Version, liest `models/7seg.txt` bzw. `models/7seg_net.h`
+4. Part 6: ESP32
+
+## 11. Token-Verbrauch pro Prompt
+
+Messmethode: Ich lese am Anfang und am Ende jedes Prompts den Zähler "tokens left" ab und bilde die Differenz. Der Zähler beginnt bei jedem Prompt neu bei 15.000.000. Die Werte sind Näherungen für den Arbeitsaufwand in dieser Sitzung und keine Abrechnungszahlen (Cache-Zugriffe und der wiederholt mitgesendete Verlauf sind nicht enthalten). Bei den Prompts 2 bis 4 habe ich weniger Messpunkte, dort sind die Werte gröber.
+
+| # | Prompt | Tokens (ca.) |
+|---|---|---|
+| 1 | Klasse `Neuron` implementieren, Projekt ansehen, dokumentieren (inkl. PDF lesbar machen) | 75.000 |
+| 2 | In CLAUDE.md eintragen, dass die Doku in `DOKUMENTATION.md` steht | unter 1.000 |
+| 3 | `Layer` implementieren | 3.000 |
+| 4 | Test erneut ausführen, Doku aktualisieren | 2.000 |
+| 5 | `NeuralNetwork`, Export/Import, XOR, 7-Segment, Website | 38.000 |
+| 6 | Token-Verbrauch dokumentieren | 3.000 |
+| 7 | Website mit Skill "redesign-existing-projects" überarbeiten (Audit, Fixes, Test im Browser; der Wert enthält den geladenen Skill-Text) | 93.000 |
+| 8 | Überlappende Beschriftungen beheben, Hover über Neuronen (Tooltip, Hervorhebung) | 12.000 |
+| 9 | Doku auf quato.org schreiben (Seite abgerufen: leere Platzhalterseite, noch nichts veröffentlicht) | 2.000 |
+| 10 | Doku als Quarto-Seite (Quarto in `.venv` installiert, `DOKUMENTATION.qmd`, Rendern und Prüfen) | 17.000 |
+| 11 | Doku direkt in `.qmd` schreiben, Git-Repo, GitHub-Pages-Workflow vorbereiten, CLAUDE.md anpassen | 20.000 |
+| | **Summe Prompt 1–11** | **ca. 266.000** |
+
+Der Aufwand lag vor allem bei Prompt 1 (Plan, PDF mit 14 Seiten lesen, Neuron + Doku) und Prompt 5 (viele Dateien, Training, Website).
+
+Regel für alle weiteren Prompts: Am Ende jedes Prompts eine neue Zeile in diese Tabelle eintragen (Prompt, Tokens) und die Summe anpassen. Die Regel steht auch in `CLAUDE.md`.
+
+Hinweis: Das `python` im PATH ist nur der Windows-Store-Stub. Verwendet wird die Umgebung `.venv\Scripts\python.exe` (Python 3.12, numpy 2.4.6).
+
+## 12. Doku als Quarto-Seite
+
+Die Doku wird direkt in dieser Datei `DOKUMENTATION.qmd` geschrieben (Quarto-Dokument). Sie ist die einzige Quelle. Die frühere `DOKUMENTATION.md` ist nur noch eine Kopie des Stands vom 13.10.2026 und wird nicht mehr gepflegt.
+
+- Quarto 1.10.19 ist über das Paket `quarto-cli` in der `.venv` installiert (nichts global).
+- Rendern: `.venv\Scripts\quarto.exe render` (ohne Dateiname). Das Ergebnis ist `_site/index.html`, eine einzelne Datei mit Inhaltsverzeichnis. Sie lässt sich direkt im Browser öffnen. Der Ordner `_site/` ist erzeugt und steht nicht in Git.
+- Einstellungen: `_quarto.yml` (Projekt, rendert nur diese Datei, Ausgabe nach `_site/`) und der Kopf dieser Datei (Titel, Inhaltsverzeichnis, Theme).
+- PDF ist nicht eingerichtet, denn dafür braucht Quarto eine TeX-Installation (z. B. `quarto install tinytex`).
+- Die Einstellung `lists_without_preceding_blankline` sorgt dafür, dass Listen ohne Leerzeile davor in der HTML-Seite trotzdem als Listen erscheinen.
+
+### 12.1 Git und GitHub Pages
+- Das Projekt ist ein lokales Git-Repository. `.gitignore` schließt `.venv/`, `__pycache__/`, `_site/`, `.quarto/` und die Aufgaben-PDF aus.
+- `.github/workflows/pages.yml` rendert die Doku bei jedem Push auf `main` und veröffentlicht sie auf GitHub Pages. Ein Remote ist noch nicht gesetzt, es wurde nichts veröffentlicht.
+- **Einmalig auf GitHub einzurichten:** Repository anlegen, `git remote add origin <URL>` und `git push -u origin main`. Dann unter Settings → Pages bei "Source" **GitHub Actions** wählen. Die Seite liegt danach unter `https://<benutzer>.github.io/<repository>/`.

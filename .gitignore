@@ -1,0 +1,24 @@
+# virtuelle Umgebung und Python-Cache
+.venv/
+__pycache__/
+*.pyc
+
+# erzeugte Quarto-Dateien
+_site/
+.quarto/
+/DOKUMENTATION.html
+/DOKUMENTATION_files/
+
+# Aufgabenstellung der Schule (nicht öffentlich machen)
+4AHITS_NN_from_scratch.pdf
+
+# Werkzeug-Dateien von Claude Code / Skills (nicht Teil des Projekts)
+.agents/
+.claude/
+skills-lock.json
+
+# alte Kopie der Doku, die Quelle ist jetzt DOKUMENTATION.qmd
+/DOKUMENTATION.md
+
+/.quarto/
+**/*.quarto_ipynb

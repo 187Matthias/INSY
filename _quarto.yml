@@ -1,0 +1,5 @@
+project:
+  # nur die Doku rendern, nicht README/Skill-Dateien aus .claude und .agents
+  render:
+    - DOKUMENTATION.qmd
+  output-dir: _site

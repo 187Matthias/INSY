@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Zwei von Hand programmierte neuronale Netze (XOR und 7-Segment) laufen im Browser mit den exportierten Gewichten.">
+<title>NN Werkbank</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2312171e'/%3E%3Ccircle cx='9' cy='16' r='3.5' fill='%23ff5a45'/%3E%3Ccircle cx='23' cy='9' r='3.5' fill='%23ff5a45'/%3E%3Ccircle cx='23' cy='23' r='3.5' fill='%23ff5a45'/%3E%3Cpath d='M9 16L23 9M9 16L23 23' stroke='%238b95a4' stroke-width='1.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: eine Werkbank-Spalte. Oben Umschalter XOR / 7-Segment, darunter Bedienfeld links und Netz-Diagramm rechts. */
+:root {
+  --bg: #eceff3; --surface: #ffffff; --fg: #12171e; --muted: #59636f; --line: #d3d9e0;
+  --led: #e8382b; --off: #e3e7ec; --pos: #0c8585; --neg: #7a4fc4; --focus: #1f5fd1;
+  --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1217; --surface: #171c23; --fg: #e6eaf0; --muted: #8b95a4; --line: #2a323c;
+  --led: #ff5a45; --off: #242b34; --pos: #3cc4c0; --neg: #a98af0; --focus: #7fa8ff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1217; --surface: #171c23; --fg: #e6eaf0; --muted: #8b95a4; --line: #2a323c;
+  --led: #ff5a45; --off: #242b34; --pos: #3cc4c0; --neg: #a98af0; --focus: #7fa8ff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 24px 40px; }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+h1 { font: 800 clamp(2rem, 6vw, 3.2rem)/1 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Gemeinsame Rückmeldung für alle Schaltflächen: sanftes Hover, kurzes Eindrücken beim Klick */
+.tab, .snap button, .digits button, .bits button { transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .12s ease; }
+.tab:hover, .snap button:hover, .digits button:hover, .bits button:hover { border-color: var(--muted); }
+.tab:active, .snap button:active, .digits button:active, .bits button:active { transform: scale(.97); }
+.tab { padding: 8px 16px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; font-weight: 500; }
+.tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+h2 { font: 600 .75rem/1 var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0; }
+.field { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) 3.4rem; gap: 10px; align-items: center; }
+.field label { font: 500 1rem var(--mono); }
+.field output { font: 400 .9rem var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--led); }
+.snap { display: flex; gap: 6px; }
+.snap .note { align-self: center; }
+.skip { position: absolute; left: 16px; top: -48px; padding: 8px 14px; background: var(--fg); color: var(--bg); border-radius: 6px; z-index: 10; }
+.skip:focus { top: 12px; }
+.snap button { padding: 2px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); font: .85rem var(--mono); }
+.result { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.big { font: 800 4.2rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.big.on { color: var(--led); }
+.verdict { font: 500 .85rem var(--mono); color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font: .85rem var(--mono); font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--bg); }
+tbody tr.static { cursor: default; }
+tbody tr.sel { background: var(--bg); box-shadow: inset 3px 0 0 var(--led); }
+.tblwrap { overflow-x: auto; }
+.digits { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.digits button { padding: 10px 0; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; font: 600 1.2rem var(--mono); }
+.digits button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.bits { display: flex; gap: 8px; }
+.bits button { flex: 1; padding: 8px 0; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; font: 500 1rem var(--mono); }
+.bits button[aria-pressed="true"] { background: var(--led); color: #fff; border-color: var(--led); }
+.bits small { display: block; font-size: .65rem; color: inherit; opacity: .7; }
+.disp { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.disp svg { width: 130px; height: 200px; flex: none; background: #0a0d10; border-radius: 8px; padding: 10px; }
+.seg-off { fill: #20262d; }
+.seg-on { fill: #ff4a37; }
+.segtbl { flex: 1; min-width: 220px; }
+.match { font: 500 .85rem var(--mono); }
+.match.ok { color: var(--pos); }
+.match.bad { color: var(--led); }
+.note { font-size: .85rem; color: var(--muted); margin: 0; text-wrap: pretty; }
+.diagram { width: 100%; height: auto; display: block; }
+.diagram text { font: 11px var(--mono); fill: var(--muted); }
+/* Hover auf Neuronen: Verbindungen des Neurons bleiben sichtbar, der Rest wird abgedunkelt */
+.netbox { position: relative; }
+.hit { fill: transparent; cursor: pointer; }
+.node.hot { stroke: var(--fg); stroke-width: 2.2; }
+.diagram.hovering line:not(.hl) { opacity: .12; }
+.diagram.hovering line.hl { stroke-opacity: 1; }
+.tip { position: absolute; z-index: 5; pointer-events: none; padding: 6px 10px; border-radius: 6px; background: var(--fg); color: var(--bg); font: .75rem/1.45 var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; box-shadow: 0 4px 14px rgb(0 0 0 / .25); }
+.tip b { display: block; font-weight: 600; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font: .75rem var(--mono); color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; }
+.legend .pos { background: var(--pos); }
+.legend .neg { background: var(--neg); }
+details { font-size: .85rem; color: var(--muted); }
+summary { cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) { .big, .seg-on { transition: fill-opacity .15s, color .15s; } .diagram line { transition: opacity .15s, stroke-opacity .15s; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Zum Inhalt springen</a>
+<div class="wrap">
+  <header>
+    <h1>NN Werkbank</h1>
+    <p class="sub">Zwei Netze, die in Python ohne Framework trainiert wurden (Backpropagation, Sigmoid, 20000 Epochen, α = 0,1). Hier laufen sie im Browser mit den exportierten Gewichten aus der JSON-Datei.</p>
+  </header>
+
+  <main id="main" class="stack">
+  <div class="tabs" role="tablist" aria-label="Netz auswählen">
+    <button class="tab" role="tab" id="tab-xor" aria-controls="xor" aria-selected="true">XOR (2-2-1)</button>
+    <button class="tab" role="tab" id="tab-seg" aria-controls="seg" aria-selected="false">7-Segment (4-16-7)</button>
+  </div>
+
+  <section id="xor" class="grid" role="tabpanel" aria-labelledby="tab-xor">
+    <div class="panel">
+      <h2>Eingaben</h2>
+      <div class="field"><label for="xa">A</label><input id="xa" type="range" min="0" max="1" step="0.01" value="0"><output id="xa-o">0.00</output></div>
+      <div class="field"><label for="xb">B</label><input id="xb" type="range" min="0" max="1" step="0.01" value="1"><output id="xb-o">1.00</output></div>
+      <div class="snap"><span class="note">Schnell:</span>
+        <button data-a="0" data-b="0">0 0</button><button data-a="0" data-b="1">0 1</button><button data-a="1" data-b="0">1 0</button><button data-a="1" data-b="1">1 1</button></div>
+      <h2>Ausgabe</h2>
+      <div class="result" aria-live="polite"><span class="big" id="xor-out">0.97</span><span class="verdict" id="xor-verdict"></span></div>
+      <div class="tblwrap"><table id="xor-tbl"><thead><tr><th>A</th><th>B</th><th>Soll</th><th>Netz</th></tr></thead><tbody></tbody></table></div>
+      <p class="note">Zwischenwerte zwischen 0 und 1 wurden nicht trainiert. Das Netz zeigt dort, wie es die Ebene zwischen den vier Punkten aufteilt. Im Diagramm zeigt ein Hover über ein Neuron seine Werte.</p>
+    </div>
+    <div class="panel">
+      <h2>Netz</h2>
+      <div class="netbox"><svg class="diagram" id="xor-svg" viewBox="0 0 600 260" role="img" aria-label="Diagramm des XOR-Netzes"></svg><div class="tip" role="tooltip" hidden></div></div>
+      <div class="legend"><span><i class="pos"></i>positives Gewicht</span><span><i class="neg"></i>negatives Gewicht</span><span>Füllung = Aktivierung</span></div>
+      <details><summary>Details zum Training</summary><p class="note">Architektur 2-2-1, Sigmoid, MSE-Kosten ½(ŷ − y)², Stochastic Gradient Descent, 20000 Epochen, Lernrate 0,1. Exportiert mit <code>dump_json()</code>.</p></details>
+    </div>
+  </section>
+
+  <section id="seg" class="grid" role="tabpanel" aria-labelledby="tab-seg" hidden>
+    <div class="panel">
+      <h2>Ziffer</h2>
+      <div class="digits" id="digits"></div>
+      <h2>oder Bits einzeln</h2>
+      <div class="bits" id="bits"></div>
+      <div class="disp">
+        <svg id="seg-svg" viewBox="0 0 130 200" role="img" aria-label="7-Segment-Anzeige"></svg>
+        <div class="segtbl">
+          <div class="tblwrap"><table id="seg-tbl"><thead><tr><th>Seg</th><th>Netz</th><th>Soll</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="match" id="seg-match"></div>
+      <p class="note" id="seg-note"></p>
+    </div>
+    <div class="panel">
+      <h2>Netz</h2>
+      <div class="netbox"><svg class="diagram" id="seg-net" viewBox="0 0 600 420" role="img" aria-label="Diagramm des 7-Segment-Netzes"></svg><div class="tip" role="tooltip" hidden></div></div>
+      <div class="legend"><span><i class="pos"></i>positives Gewicht</span><span><i class="neg"></i>negatives Gewicht</span><span>Füllung = Aktivierung</span></div>
+      <details><summary>Details zum Training</summary><p class="note">Architektur 4-16-7, Sigmoid, MSE-Kosten, SGD, 20000 Epochen, Lernrate 0,1. Eingabe ist die Ziffer als 4 Bit, Ausgabe sind die Segmente a bis g.</p></details>
+    </div>
+  </section>
+  </main>
+</div>
+
+<script>
+const XOR_NET = {"layer_sizes":[2,2,1],"layers":[[{"weights":[4.4189489410313385,4.419907312141666],"bias":-6.8782864987033845},{"weights":[-5.901752903321736,-5.905906582118992],"bias":2.2510696835978092}],[{"weights":[-8.874160120164296,-8.715707937944744],"bias":4.331063383164297}]]};
+const SEG_NET = {"layer_sizes":[4,16,7],"layers":[[{"weights":[0.378584577005672,-0.8250217396192282,0.7707378139664288,0.05803340610778978],"bias":-0.8021267944542835},{"weights":[-4.017427327318388,-4.506728345758938,3.7991358840744596,1.74540974890588],"bias":1.3813236054041074},{"weights":[0.5480369860752676,2.7291254190867824,-4.393816222621056,5.6010673047996935],"bias":0.08736131842951154},{"weights":[3.2403045179984,-1.7162950859305854,2.399465852370913,-2.7119958384423644],"bias":0.28076517171416393},{"weights":[1.4050403333172343,1.6294656812492394,-4.403919912718225,0.18366221993594414],"bias":0.1671118019887433},{"weights":[2.951586450576953,-4.062690141628984,0.7607983519386313,-3.022613782684159],"bias":1.0719184859211777},{"weights":[-1.1279218342111632,1.2595592169919445,2.0685997334369652,-2.200344231481198],"bias":-0.3761457793515664},{"weights":[2.9325393291138453,-5.312460678842525,5.636649656913309,-4.399857294181862],"bias":1.282143874365558},{"weights":[2.5208301008227925,2.9246629713082686,-4.024019929575316,2.9564700320036374],"bias":-4.3438361969844985},{"weights":[0.13956794137253323,5.362748911130706,-2.185449175200805,-2.4811137288204024],"bias":1.0122264627329256},{"weights":[0.6011235781109283,3.3977979357931924,-3.9864361298826108,-6.03526716900981],"bias":-0.999945030768911},{"weights":[0.9770982013567461,1.6481162099496889,-1.3001722869908476,-2.214779634350303],"bias":0.027039163322583454},{"weights":[-2.619578058320941,-5.195870167952872,5.005320088996262,4.570853859620208],"bias":-2.2813250254053945},{"weights":[0.5869673949416085,3.22125151783066,3.167232405071126,2.7859718274167617],"bias":-2.99911692105298},{"weights":[-1.456649545355068,-4.329418722741809,-4.6483753682368025,-0.6067776427727539],"bias":1.9842060355658786},{"weights":[-1.5766811919019763,2.6611540927630144,-3.1261843554950204,1.1674583392693718],"bias":1.2782419571322035}],[{"weights":[0.7344882978782762,0.8956990368518427,-1.9926005929652295,1.524014382118407,-2.4643521335602654,2.7619609449488225,0.9745501714896703,5.8746323897966075,3.3488197890693536,3.777968137912702,-6.297762631329145,-0.6684900046237351,-1.910625557629477,2.463067969830373,-3.3382483447623885,-2.184122565169554],"bias":1.7158951224994348},{"weights":[0.5680653549104158,0.13646285202288524,3.8309458491952717,0.15731835648100964,-0.8428724792277169,3.699982638840891,0.7410844065453783,-1.9365013775153084,-2.5153143271793463,-3.7879317307593627,5.384709722398829,0.1824338320079539,5.7968534616796354,-3.6032433387901093,1.208723032863289,0.35872234985024026],"bias":1.0770206705889807},{"weights":[-0.612429534553766,0.015987330561426323,5.04669510697265,-0.6305689253745919,3.2286030344133305,-2.51825363174847,-2.0308029780826193,-2.318350232125964,0.7629524356113417,0.9639870181956284,1.899497069878401,1.1503990238479123,-1.2590445743460543,3.435205156121614,0.4626839101821002,2.116894425765221],"bias":1.5148864346060797},{"weights":[1.2260481865594188,-0.6704110280050407,-3.1552900858819664,1.477578894985318,1.3390441440426266,2.975512546735218,-1.81993119452646,6.967283128941977,4.952927274993916,0.2522474828127698,-4.293662000531908,-0.9432363714716293,-3.840019896280144,1.745765164310289,-1.80755508234133,-1.1042079202785284],"bias":1.98893445649299},{"weights":[0.10532776637054624,-0.864045641028454,-5.57118790719766,3.6386313085951856,-1.193344085273443,1.4281257011497128,0.7396882674514846,4.037557030786975,-2.261271543514027,1.5809640667094165,0.5696045986139062,1.1505212236224927,-2.3680883593014843,-2.425462029811268,1.3492819309628228,-0.2295365076967462],"bias":-0.560164562955259},{"weights":[-0.3368496551618901,-4.4259777381809355,-0.025178686488595836,2.422500706085857,3.0917293094573672,0.5613406258891508,-0.10209700697596971,0.9193545923973545,1.4570203688071202,2.9469448762972896,2.5578000581180023,2.5183707512035154,-4.706854384144398,-0.4588914204695752,0.1496881393546129,1.0335770391680648],"bias":-0.12792367335469645},{"weights":[0.9261327975602603,-6.048415402702983,-1.3584460562038045,2.6666194493165585,2.507795495999338,-0.08677149506154452,-0.7839924127459236,5.221602205980013,2.824496139505744,-2.380817333874301,1.8630707591444695,1.9812630090314127,-0.7324119838364302,5.32891242485432,-5.496803824589936,-2.2737734453497],"bias":1.3883342999719037}]]};
+
+const sigmoid = x => 1 / (1 + Math.exp(-x));
+// Forward-Pass wie in Layer.forward: Output einer Schicht ist Input der nächsten
+function forward(net, x) {
+  const acts = [x];
+  let v = x;
+  for (const layer of net.layers) {
+    v = layer.map(n => sigmoid(n.weights.reduce((s, w, i) => s + w * v[i], n.bias)));
+    acts.push(v);
+  }
+  return acts;
+}
+const NS = "http://www.w3.org/2000/svg";
+const f2 = x => x.toFixed(2);
+
+// Zeichnet Neuronen (Füllung = Aktivierung) und Gewichte (Farbe = Vorzeichen, Dicke = Betrag)
+// names[l][i] ist der Name des Neurons (für den Tooltip beim Hover)
+function drawNet(svg, net, acts, labels, names) {
+  const [W, H] = svg.getAttribute("viewBox").split(" ").slice(2).map(Number);
+  const sizes = net.layer_sizes, maxN = Math.max(...sizes);
+  const padX = 60, padY = 34;
+  const r = Math.min(15, (H - 2 * padY) / (maxN * 2.5));
+  const pos = (l, i) => [padX + l * (W - 2 * padX) / (sizes.length - 1),
+                         H / 2 + (i - (sizes[l] - 1) / 2) * Math.min(2.5 * r, (H - 2 * padY) / Math.max(sizes[l] - 1, 1))];
+  let out = "";
+  net.layers.forEach((layer, l) => layer.forEach((n, j) => n.weights.forEach((w, i) => {
+    const [x1, y1] = pos(l, i), [x2, y2] = pos(l + 1, j);
+    const a = Math.abs(w);
+    out += `<line data-l="${l}" data-i="${i}" data-j="${j}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:var(${w >= 0 ? "--pos" : "--neg"})" stroke-width="${(0.4 + Math.min(a, 8) * 0.35).toFixed(2)}" stroke-opacity="${(0.12 + Math.min(a / 6, 0.75)).toFixed(2)}"/>`;
+  })));
+  acts.forEach((col, l) => col.forEach((v, i) => {
+    const [x, y] = pos(l, i);
+    out += `<circle class="node" data-l="${l}" data-i="${i}" cx="${x}" cy="${y}" r="${r}" style="fill:var(--surface);stroke:var(--muted)" stroke-width="1.2"/>`;
+    out += `<circle cx="${x}" cy="${y}" r="${r - 1}" style="fill:var(--led);pointer-events:none" fill-opacity="${v.toFixed(3)}"/>`;
+    // unsichtbarer, etwas größerer Kreis als Trefferfläche für Hover und Antippen
+    out += `<circle class="hit" data-l="${l}" data-i="${i}" cx="${x}" cy="${y}" r="${r + 3}"/>`;
+  }));
+  labels.forEach((t, l) => { out += `<text x="${pos(l, 0)[0]}" y="14" text-anchor="middle">${t}</text>`; });
+  svg.innerHTML = out;
+  svg._ctx = { net, acts, names };
+  if (!svg._wired) wireHover(svg);
+  if (svg._hover) showHover(svg, svg._hover[0], svg._hover[1]);   // Hover nach dem Neuzeichnen beibehalten
+}
+
+// Hover über ein Neuron: Tooltip anzeigen, seine Verbindungen hervorheben.
+// Die Ereignisse hängen am (bleibenden) SVG-Element, weil dessen Inhalt bei jeder Eingabe neu gezeichnet wird.
+function wireHover(svg) {
+  svg._wired = true;
+  svg.addEventListener("pointerover", e => {
+    const h = e.target.closest(".hit");
+    if (h) showHover(svg, +h.dataset.l, +h.dataset.i);
+  });
+  svg.addEventListener("pointerout", e => {
+    if (!(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".hit"))) hideHover(svg);
+  });
+}
+function showHover(svg, l, i) {
+  const { net, acts, names } = svg._ctx;
+  if (!acts[l] || acts[l][i] === undefined) return hideHover(svg);
+  svg._hover = [l, i];
+  svg.classList.add("hovering");
+  // Linien: verbunden = kommt aus diesem Neuron (Schicht l) oder führt in dieses Neuron (Schicht l-1)
+  svg.querySelectorAll("line").forEach(ln => {
+    const ll = +ln.dataset.l;
+    ln.classList.toggle("hl", (ll === l && +ln.dataset.i === i) || (ll === l - 1 && +ln.dataset.j === i));
+  });
+  svg.querySelectorAll(".node").forEach(c => c.classList.toggle("hot", +c.dataset.l === l && +c.dataset.i === i));
+  const box = svg.parentElement, tip = box.querySelector(".tip");
+  const minus = x => f2(x).replace("-", "−");
+  tip.innerHTML = `<b>${names[l][i]}</b>Aktivierung ${f2(acts[l][i])}` + (l > 0 ? `<br>Bias ${minus(net.layers[l - 1][i].bias)}` : "");
+  tip.hidden = false;
+  // Tooltip über dem Neuron platzieren, am Rand der Box festhalten; zu wenig Platz oben -> darunter
+  const hit = svg.querySelector(`.hit[data-l="${l}"][data-i="${i}"]`).getBoundingClientRect();
+  const b = box.getBoundingClientRect();
+  const cx = hit.left + hit.width / 2 - b.left;
+  const left = Math.min(Math.max(cx, tip.offsetWidth / 2), b.width - tip.offsetWidth / 2);
+  const above = hit.top - b.top - tip.offsetHeight - 6;
+  tip.style.left = left - tip.offsetWidth / 2 + "px";
+  tip.style.top = (above >= 0 ? above : hit.bottom - b.top + 6) + "px";
+}
+function hideHover(svg) {
+  svg._hover = null;
+  svg.classList.remove("hovering");
+  svg.querySelectorAll("line.hl").forEach(ln => ln.classList.remove("hl"));
+  svg.querySelectorAll(".node.hot").forEach(c => c.classList.remove("hot"));
+  svg.parentElement.querySelector(".tip").hidden = true;
+}
+
+/* ---------- XOR ---------- */
+const xa = document.getElementById("xa"), xb = document.getElementById("xb");
+const XOR_ROWS = [[0,0,0],[0,1,1],[1,0,1],[1,1,0]];
+const xtb = document.querySelector("#xor-tbl tbody");
+XOR_ROWS.forEach(([a, b, y], k) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${a}</td><td>${b}</td><td>${y}</td><td></td>`;
+  // Zeile ist klickbar, also auch per Tastatur (Tab, Enter, Leertaste) bedienbar
+  tr.tabIndex = 0;
+  tr.setAttribute("aria-label", `Eingabe ${a} ${b} setzen`);
+  const pick = () => { xa.value = a; xb.value = b; renderXor(); };
+  tr.addEventListener("click", pick);
+  tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  xtb.appendChild(tr);
+});
+function renderXor() {
+  const a = +xa.value, b = +xb.value;
+  document.getElementById("xa-o").textContent = f2(a);
+  document.getElementById("xb-o").textContent = f2(b);
+  const acts = forward(XOR_NET, [a, b]);
+  const y = acts[2][0];
+  const out = document.getElementById("xor-out");
+  out.textContent = f2(y);
+  out.classList.toggle("on", y > 0.5);
+  document.getElementById("xor-verdict").textContent = y > 0.5 ? "gerundet 1" : "gerundet 0";
+  [...xtb.rows].forEach((tr, k) => {
+    const [ra, rb] = XOR_ROWS[k];
+    tr.cells[3].textContent = f2(forward(XOR_NET, [ra, rb])[2][0]);
+    tr.classList.toggle("sel", ra === a && rb === b);
+  });
+  drawNet(document.getElementById("xor-svg"), XOR_NET, acts, ["Input", "Hidden", "Output"],
+    [["Input A", "Input B"], ["Hidden 1", "Hidden 2"], ["Output (XOR)"]]);
+}
+xa.addEventListener("input", renderXor);
+xb.addEventListener("input", renderXor);
+document.querySelectorAll(".snap button").forEach(btn =>
+  btn.addEventListener("click", () => { xa.value = btn.dataset.a; xb.value = btn.dataset.b; renderXor(); }));
+
+/* ---------- 7-Segment ---------- */
+const SEGS = ["a","b","c","d","e","f","g"];
+const CODE = [[1,1,1,1,1,1,0],[0,1,1,0,0,0,0],[1,1,0,1,1,0,1],[1,1,1,1,0,0,1],[0,1,1,0,0,1,1],
+              [1,0,1,1,0,1,1],[1,0,1,1,1,1,1],[1,1,1,0,0,0,0],[1,1,1,1,1,1,1],[1,1,1,1,0,1,1]];
+// Lage der Segmente a-g im Anzeige-SVG: x, y, Breite, Höhe
+const GEO = { a:[25,8,80,14], b:[107,24,14,68], c:[107,108,14,68], d:[25,178,80,14],
+              e:[9,108,14,68], f:[9,24,14,68], g:[25,93,80,14] };
+let bits = [0,0,0,0];
+
+const segSvg = document.getElementById("seg-svg");
+segSvg.innerHTML = SEGS.map(s => { const [x,y,w,h] = GEO[s];
+  return `<rect class="seg-off" x="${x}" y="${y}" width="${w}" height="${h}" rx="5"/><rect class="seg-on" id="s-${s}" x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill-opacity="0"/>`; }).join("");
+const stb = document.querySelector("#seg-tbl tbody");
+stb.innerHTML = SEGS.map(s => `<tr class="static"><td>${s}</td><td></td><td></td></tr>`).join("");
+
+const digitsEl = document.getElementById("digits"), bitsEl = document.getElementById("bits");
+for (let d = 0; d < 10; d++) {
+  const b = document.createElement("button");
+  b.textContent = d; b.dataset.d = d;
+  b.addEventListener("click", () => { bits = [3,2,1,0].map(k => (d >> k) & 1); renderSeg(); });
+  digitsEl.appendChild(b);
+}
+[3,2,1,0].forEach((k, i) => {
+  const b = document.createElement("button");
+  b.innerHTML = `<small>${1 << k}</small><span></span>`;
+  b.addEventListener("click", () => { bits[i] ^= 1; renderSeg(); });
+  bitsEl.appendChild(b);
+});
+function renderSeg() {
+  const d = bits[0] * 8 + bits[1] * 4 + bits[2] * 2 + bits[3];
+  [...digitsEl.children].forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.d === d)));
+  [...bitsEl.children].forEach((b, i) => { b.setAttribute("aria-pressed", String(bits[i] === 1)); b.querySelector("span").textContent = bits[i]; });
+  const acts = forward(SEG_NET, bits);
+  const y = acts[2];
+  SEGS.forEach((s, i) => {
+    document.getElementById("s-" + s).setAttribute("fill-opacity", y[i].toFixed(3));
+    const tr = stb.rows[i];
+    tr.cells[1].textContent = f2(y[i]);
+    tr.cells[2].textContent = d < 10 ? CODE[d][i] : "–";
+  });
+  const m = document.getElementById("seg-match"), note = document.getElementById("seg-note");
+  if (d < 10) {
+    const ok = y.every((v, i) => Math.round(v) === CODE[d][i]);
+    m.textContent = ok ? `Ziffer ${d}: alle 7 Segmente stimmen` : `Ziffer ${d}: Abweichung`;
+    m.className = "match " + (ok ? "ok" : "bad");
+    note.textContent = "";
+  } else {
+    m.textContent = `Wert ${d}: keine Ziffer`;
+    m.className = "match";
+    note.textContent = "Die Werte 10 bis 15 kamen im Training nicht vor. Das Netz gibt hier ungeprüfte Werte aus.";
+  }
+  drawNet(document.getElementById("seg-net"), SEG_NET, acts, ["Input", "Hidden (16)", "Output a–g"],
+    [[8, 4, 2, 1].map(k => "Input Bit " + k), Array.from({ length: 16 }, (_, k) => "Hidden " + (k + 1)), SEGS.map(s => "Output Segment " + s)]);
+}
+
+/* ---------- Tabs ---------- */
+const tabs = { xor: document.getElementById("tab-xor"), seg: document.getElementById("tab-seg") };
+function show(which) {
+  for (const k in tabs) {
+    tabs[k].setAttribute("aria-selected", String(k === which));
+    document.getElementById(k).hidden = k !== which;
+  }
+  try { localStorage.setItem("nn-tab", which); } catch (e) {}
+}
+tabs.xor.addEventListener("click", () => show("xor"));
+tabs.seg.addEventListener("click", () => show("seg"));
+// Pfeiltasten wechseln zwischen den Reitern (üblich bei role="tablist")
+for (const k in tabs) tabs[k].addEventListener("keydown", e => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const next = k === "xor" ? "seg" : "xor";
+  show(next); tabs[next].focus();
+});
+
+renderXor();
+bits = [0,1,0,1];
+renderSeg();
+let saved = null;
+try { saved = localStorage.getItem("nn-tab"); } catch (e) {}
+show(saved === "seg" ? "seg" : "xor");
+</script>
+</body>
+</html>
