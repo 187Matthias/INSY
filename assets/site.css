@@ -71,11 +71,17 @@ main table th {
   color: var(--muted); border-bottom-color: var(--line);
 }
 main table td, main table th { border-color: var(--line); }
+/* Quarto/Bootstrap färben den Außenrand und die Kopfzeile mit eigenen Grautönen, daher !important */
+main table, main table thead, main table tbody, main table tfoot, main table tr { border-color: var(--line) !important; }
 main table tr:hover td { background: var(--off); }
 
 /* Code */
 code { font-family: var(--mono); }
-:not(pre) > code { color: var(--fg); background: var(--off); border-radius: 4px; padding: .1em .35em; }
+/* Inline-Code: Quarto setzt eigene Hintergrundfarben je Element, daher mit gleicher Genauigkeit überschreiben */
+:not(pre) > code, main code:not(.sourceCode) {
+  color: var(--fg); background: var(--off); border-radius: 4px; padding: .1em .35em;
+}
+main pre code, main pre > code:not(.sourceCode) { background: none; padding: 0; }
 pre, div.sourceCode {
   background: var(--surface) !important; color: var(--fg); border: 1px solid var(--line);
   border-radius: 8px; font-family: var(--mono);
