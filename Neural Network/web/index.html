@@ -8,7 +8,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2312171e'/%3E%3Ccircle cx='9' cy='16' r='3.5' fill='%23ff5a45'/%3E%3Ccircle cx='23' cy='9' r='3.5' fill='%23ff5a45'/%3E%3Ccircle cx='23' cy='23' r='3.5' fill='%23ff5a45'/%3E%3Cpath d='M9 16L23 9M9 16L23 23' stroke='%238b95a4' stroke-width='1.5'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Big+Shoulders+Display:wght@700;800&display=swap" rel="stylesheet">
+<!-- Gemeinsames Design der ganzen Website (Farben, Schriften, Navigationsleiste) -->
+<link rel="stylesheet" href="../../assets/site.css">
 <style>
 /* Layout: eine Werkbank-Spalte. Oben Umschalter XOR / 7-Segment, darunter Bedienfeld links und Netz-Diagramm rechts. */
 :root {
@@ -27,8 +29,8 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 24px 40px; }
-.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+.wrap { max-width: 1112px; margin: 0 auto; padding: 32px 16px 56px; display: flex; flex-direction: column; gap: 20px; }
 .stack { display: flex; flex-direction: column; gap: 20px; }
 h1 { font: 800 clamp(2rem, 6vw, 3.2rem)/1 var(--display); text-transform: uppercase; letter-spacing: .02em; margin: 0; text-wrap: balance; }
 .sub { color: var(--muted); margin: 6px 0 0; max-width: 62ch; }
@@ -103,6 +105,15 @@ summary { cursor: pointer; }
 </head>
 <body>
 <a class="skip" href="#main">Zum Inhalt springen</a>
+<!-- Dieselbe Navigation wie auf allen Seiten der Website (siehe _quarto.yml im Hauptordner) -->
+<header class="sitenav"><div class="sitenav-in">
+  <a class="brand" href="../../index.html">INSY</a>
+  <nav aria-label="Seiten">
+    <a href="../../index.html">Projekte</a>
+    <a href="../index.html">Neural Network</a>
+    <a href="index.html" aria-current="page">NN Werkbank</a>
+  </nav>
+</div></header>
 <div class="wrap">
   <header>
     <h1>NN Werkbank</h1>

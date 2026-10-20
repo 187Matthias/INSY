@@ -204,7 +204,8 @@ Messmethode: Ich lese am Anfang und am Ende jedes Prompts den Zähler "tokens le
 | 11 | Doku direkt in `.qmd` schreiben, Git-Repo, GitHub-Pages-Workflow vorbereiten, CLAUDE.md anpassen | 20.000 |
 | 12 | Pages-Fehler 404 erklären, Plan für Ordner pro Projekt mit Startseite (noch keine Änderung am Code) | 4.000 |
 | 13 | Ordner pro Projekt ("Neural Network"), Startseite mit Projektkarten, Skripte und Doku anpassen, alte Doku-Kopien gelöscht | 28.000 |
-| | **Summe Prompt 1–13** | **ca. 298.000** |
+| 14 | Einheitliches Design für Startseite, Projekt-Doku und NN-Werkbank (gemeinsames CSS, Navigation, Messung im Browser) | 33.000 |
+| | **Summe Prompt 1–14** | **ca. 331.000** |
 
 Der Aufwand lag vor allem bei Prompt 1 (Plan, PDF mit 14 Seiten lesen, Neuron + Doku) und Prompt 5 (viele Dateien, Training, Website).
 
@@ -240,7 +241,17 @@ INSY/                       Git-Repository (GitHub: 187Matthias/INSY)
 - **Befehle:** Die Skripte wechseln selbst in ihren Ordner. Sie laufen daher aus dem Hauptordner, z. B. `.venv\Scripts\python.exe "Neural Network\test_xor.py"`. Befehle weiter oben in dieser Doku ohne Pfad gelten im Ordner `Neural Network`.
 - **Adresse:** Die Projektseite liegt unter `https://187matthias.github.io/INSY/Neural%20Network/`, die Werkbank unter `.../Neural%20Network/web/`. Das Leerzeichen im Ordnernamen erscheint in der Adresse als `%20`.
 
-### 12.2 Git und GitHub Pages
+### 12.2 Einheitliches Design
+
+Startseite, Projekt-Dokus und NN-Werkbank sehen gleich aus. Die Werte (Farben, Schriften) stammen aus der Werkbank und liegen an einer Stelle:
+
+- `assets/site.css`: Farben, Schriften (IBM Plex Sans und Mono, Big Shoulders Display für Überschriften), Navigationsleiste, Tabellen, Code, Projektkarten. Hell und Dunkel folgen der Systemeinstellung, ohne Umschalter. Die Werkbank bindet dieselbe Datei ein.
+- `assets/theme.scss`: Grundwerte für das Quarto-Theme (Schriftarten, Hintergrund, Linkfarbe).
+- `assets/fonts.html`: Google-Fonts-Einbindung für alle Quarto-Seiten.
+- **Navigation:** Sie ist auf allen Seiten gleich (INSY, Projekte, Neural Network, NN Werkbank). Bei Quarto kommt sie aus `_quarto.yml`, in der Werkbank steht sie als `<header class="sitenav">` am Anfang von `web/index.html`. Wird ein Projekt hinzugefügt, muss der Eintrag an beiden Stellen ergänzt werden.
+- **Geprüft:** Position und Größe der Navigationsleiste sind auf den drei Seiten identisch (Marke bei x = 16, Links bei x = 86, 166 und 296, Schrift 24 px bzw. 15 px). Screenshots in Hell und Dunkel gesehen.
+
+### 12.3 Git und GitHub Pages
 - `.gitignore` schließt `.venv/`, `__pycache__/`, `_site/`, `.quarto/`, die Skill-Ordner `.agents/` und `.claude/` sowie die Aufgaben-PDF aus.
 - `.github/workflows/pages.yml` rendert die Website bei jedem Push auf `main` und veröffentlicht sie auf GitHub Pages.
 - **Fehler 404 bei `deploy-pages`:** Pages war im Repository noch nicht eingeschaltet. Lösung: Settings → Pages → Source auf **GitHub Actions** stellen und den Workflow neu starten (Actions → letzter Lauf → Re-run all jobs). Bei einem privaten Repository geht Pages nur mit bezahltem Plan.

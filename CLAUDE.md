@@ -46,7 +46,8 @@ Neural Network/                    Projekt "Neuronales Netz from scratch"
 ## Dokumentation / Fortschritt
 - Die Dokumentation des Projekts steht in `Neural Network/DOKUMENTATION.qmd` (Quarto, wird mit Git verwaltet und über GitHub Pages veröffentlicht) und zeigt, wie weit das Projekt aktuell ist (was fertig ist, was noch offen ist).
 - Nach jedem abgeschlossenen Schritt `Neural Network/DOKUMENTATION.qmd` aktualisieren (Änderungen, Testergebnisse, offene Punkte) und im Hauptordner mit `.venv\Scripts\quarto.exe render` prüfen. Zum Einstieg in eine neue Sitzung zuerst dort nachlesen.
-- Neues Projekt: neuer Ordner mit eigener `DOKUMENTATION.qmd` (mit `title`, `subtitle`, `description` im Kopf). Die Startseite und `_quarto.yml` müssen dafür nicht geändert werden.
+- Neues Projekt: neuer Ordner mit eigener `DOKUMENTATION.qmd` (mit `title`, `subtitle`, `description` im Kopf). Die Startseite muss dafür nicht geändert werden; neuer Eintrag in der Navigation (`_quarto.yml` und die Leiste in `Neural Network/web/index.html`).
+- Design: Alle Seiten nutzen `assets/site.css` (Farben, Schriften, Navigation, wie in der NN-Werkbank). Design nur dort ändern, nicht pro Seite.
 
 - Token-Verbrauch: In `Neural Network/DOKUMENTATION.qmd` (Abschnitt "Token-Verbrauch pro Prompt") steht, wie viele Tokens pro Prompt verbraucht wurden. Am Ende **jedes** Prompts eine neue Zeile eintragen (Prompt kurz beschreiben, ungefähre Tokens, Summe anpassen) und im Text kurz erwähnen. Die Werte sind Näherungen aus dem "tokens left"-Zähler (Differenz Anfang/Ende des Prompts).
 

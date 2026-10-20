@@ -1,0 +1,20 @@
+/*-- scss:defaults --*/
+// Grundwerte des gemeinsamen Designs (hell). Das dunkle Aussehen kommt aus assets/site.css
+// über prefers-color-scheme, genau wie in der NN-Werkbank.
+$font-family-sans-serif: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+$font-family-monospace: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+$font-size-base: 0.9375rem;
+$line-height-base: 1.55;
+
+$body-bg: #eceff3;
+$body-color: #12171e;
+$link-color: #1f5fd1;
+$headings-font-weight: 600;
+$headings-line-height: 1.2;
+
+$navbar-bg: #ffffff;
+$navbar-fg: #59636f;
+$navbar-hover-color: #12171e;
+
+$code-color: #12171e;
+$border-radius: 0.5rem;

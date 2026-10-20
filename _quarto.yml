@@ -6,18 +6,29 @@ project:
   render:
     - index.qmd
     - "*/DOKUMENTATION.qmd"
-  # Dateien, die unverändert mit auf die Seite kommen (NN-Werkbank)
+  # Dateien, die unverändert mit auf die Seite kommen (NN-Werkbank, gemeinsames Design)
   resources:
     - "Neural Network/web/"
+    - assets/site.css
 
 website:
   title: "INSY"
+  search: false
+  # Dieselbe Navigation steht oben in "Neural Network/web/index.html" (NN-Werkbank).
+  # Wird hier etwas geändert, dort bitte mit ändern.
   navbar:
     left:
       - href: index.qmd
         text: Projekte
+      - href: "Neural Network/DOKUMENTATION.qmd"
+        text: Neural Network
+      - href: "Neural Network/web/index.html"
+        text: NN Werkbank
 
 format:
   html:
-    theme: cosmo
+    # Gemeinsames Design: Farben und Schriften wie in der NN-Werkbank
+    theme: assets/theme.scss
+    css: assets/site.css
+    include-in-header: assets/fonts.html
     lang: de
