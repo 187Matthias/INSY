@@ -1,5 +1,8 @@
 import numpy
 from nn import NeuralNetwork
+import os
+# Immer im Ordner dieses Skripts arbeiten, damit "models/..." von überall aus gefunden wird
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from train_7seg import X, Y
 
 net = NeuralNetwork.load("models/7seg.json")

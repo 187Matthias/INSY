@@ -1,5 +1,23 @@
 project:
-  # nur die Doku rendern, nicht README/Skill-Dateien aus .claude und .agents
-  render:
-    - DOKUMENTATION.qmd
+  type: website
   output-dir: _site
+  # nur die Startseite und die Projekt-Dokus rendern, nicht .claude, .agents oder .venv.
+  # Jedes neue Projekt ist ein Ordner mit einer DOKUMENTATION.qmd.
+  render:
+    - index.qmd
+    - "*/DOKUMENTATION.qmd"
+  # Dateien, die unverändert mit auf die Seite kommen (NN-Werkbank)
+  resources:
+    - "Neural Network/web/"
+
+website:
+  title: "INSY"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Projekte
+
+format:
+  html:
+    theme: cosmo
+    lang: de

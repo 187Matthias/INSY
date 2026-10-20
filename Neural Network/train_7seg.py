@@ -1,6 +1,8 @@
 import os
 import numpy
 from nn import NeuralNetwork
+# Immer im Ordner dieses Skripts arbeiten, damit "models/..." von überall aus gefunden wird
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 # Ziffer -> Segmente a b c d e f g (1 = leuchtet)
 SEGMENTE = {

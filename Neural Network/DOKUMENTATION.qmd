@@ -1,6 +1,8 @@
 ---
-title: "Dokumentation: Neuronales Netz from scratch"
-subtitle: "4AHITS INSY, neuronales Netz in Python mit numpy"
+title: "Neural Network from scratch"
+subtitle: "XOR und 7-Segment-Decoder mit einem selbst gebauten Netz"
+# description erscheint als Text auf der Karte der Startseite
+description: "Neuronales Netz in Python mit nur numpy: Neuron, Layer und NeuralNetwork, Backpropagation, Training von XOR und einem 7-Segment-Decoder, Export als JSON, TXT und C-Header."
 lang: de
 date: last-modified
 date-format: "DD.MM.YYYY"
@@ -11,11 +13,12 @@ format:
     toc: true
     toc-title: Inhalt
     toc-depth: 3
-    theme: cosmo
     code-copy: true
-    embed-resources: true
+    # Projektseite liegt unter .../Neural Network/ statt .../DOKUMENTATION.html
     output-file: index.html
 ---
+
+Dokumentation zum Projekt "Neural Network from scratch". [Zur NN-Werkbank (XOR und 7-Segment im Browser ausprobieren)](web/index.html)
 
 Stand: 2026-09-29. Aufgabe laut `4AHITS_NN_from_scratch.pdf` (Part 1–6), Ziel: XOR und 7-Segment-Decoder mit einem selbst gebauten Netz (nur `numpy`).
 
@@ -57,7 +60,7 @@ Die korrigierte Version liegt in `nn/neuron.py`. `ki.py` selbst habe ich nicht v
 - `models/` – exportierte `.json`, `.txt`, `.h` Dateien
 - `web/index.html` – Website (Abschnitt 8)
 - `test_neuron.py`, `test_layer.py` – Tests
-- `DOKUMENTATION.qmd` – diese Datei (Quarto), `_quarto.yml` und `.github/workflows/pages.yml` für das Veröffentlichen (Abschnitt 12)
+- `DOKUMENTATION.qmd` – diese Datei (Quarto). `_quarto.yml`, `index.qmd` und `.github/workflows/pages.yml` für die Website liegen im Hauptordner (Abschnitt 12)
 
 ## 3. Klasse `Neuron` erklärt
 
@@ -199,7 +202,9 @@ Messmethode: Ich lese am Anfang und am Ende jedes Prompts den Zähler "tokens le
 | 9 | Doku auf quato.org schreiben (Seite abgerufen: leere Platzhalterseite, noch nichts veröffentlicht) | 2.000 |
 | 10 | Doku als Quarto-Seite (Quarto in `.venv` installiert, `DOKUMENTATION.qmd`, Rendern und Prüfen) | 17.000 |
 | 11 | Doku direkt in `.qmd` schreiben, Git-Repo, GitHub-Pages-Workflow vorbereiten, CLAUDE.md anpassen | 20.000 |
-| | **Summe Prompt 1–11** | **ca. 266.000** |
+| 12 | Pages-Fehler 404 erklären, Plan für Ordner pro Projekt mit Startseite (noch keine Änderung am Code) | 4.000 |
+| 13 | Ordner pro Projekt ("Neural Network"), Startseite mit Projektkarten, Skripte und Doku anpassen, alte Doku-Kopien gelöscht | 28.000 |
+| | **Summe Prompt 1–13** | **ca. 298.000** |
 
 Der Aufwand lag vor allem bei Prompt 1 (Plan, PDF mit 14 Seiten lesen, Neuron + Doku) und Prompt 5 (viele Dateien, Training, Website).
 
@@ -209,15 +214,34 @@ Hinweis: Das `python` im PATH ist nur der Windows-Store-Stub. Verwendet wird die
 
 ## 12. Doku als Quarto-Seite
 
-Die Doku wird direkt in dieser Datei `DOKUMENTATION.qmd` geschrieben (Quarto-Dokument). Sie ist die einzige Quelle. Die frühere `DOKUMENTATION.md` ist nur noch eine Kopie des Stands vom 13.10.2026 und wird nicht mehr gepflegt.
+Die Doku wird direkt in dieser Datei `DOKUMENTATION.qmd` geschrieben (Quarto-Dokument). Sie ist die einzige Quelle. Die frühere `DOKUMENTATION.md` wurde gelöscht.
 
-- Quarto 1.10.19 ist über das Paket `quarto-cli` in der `.venv` installiert (nichts global).
-- Rendern: `.venv\Scripts\quarto.exe render` (ohne Dateiname). Das Ergebnis ist `_site/index.html`, eine einzelne Datei mit Inhaltsverzeichnis. Sie lässt sich direkt im Browser öffnen. Der Ordner `_site/` ist erzeugt und steht nicht in Git.
-- Einstellungen: `_quarto.yml` (Projekt, rendert nur diese Datei, Ausgabe nach `_site/`) und der Kopf dieser Datei (Titel, Inhaltsverzeichnis, Theme).
+- Quarto 1.10.19 ist über das Paket `quarto-cli` in der `.venv` im Hauptordner installiert (nichts global).
+- Rendern (im Hauptordner `INSY`): `.venv\Scripts\quarto.exe render` (ohne Dateiname). Das Ergebnis ist die Website in `_site/` mit Startseite und allen Projektseiten. Der Ordner `_site/` ist erzeugt und steht nicht in Git.
+- Die Einstellung `lists_without_preceding_blankline` im Kopf dieser Datei sorgt dafür, dass Listen ohne Leerzeile davor in der HTML-Seite trotzdem als Listen erscheinen.
 - PDF ist nicht eingerichtet, denn dafür braucht Quarto eine TeX-Installation (z. B. `quarto install tinytex`).
-- Die Einstellung `lists_without_preceding_blankline` sorgt dafür, dass Listen ohne Leerzeile davor in der HTML-Seite trotzdem als Listen erscheinen.
 
-### 12.1 Git und GitHub Pages
-- Das Projekt ist ein lokales Git-Repository. `.gitignore` schließt `.venv/`, `__pycache__/`, `_site/`, `.quarto/` und die Aufgaben-PDF aus.
-- `.github/workflows/pages.yml` rendert die Doku bei jedem Push auf `main` und veröffentlicht sie auf GitHub Pages. Ein Remote ist noch nicht gesetzt, es wurde nichts veröffentlicht.
-- **Einmalig auf GitHub einzurichten:** Repository anlegen, `git remote add origin <URL>` und `git push -u origin main`. Dann unter Settings → Pages bei "Source" **GitHub Actions** wählen. Die Seite liegt danach unter `https://<benutzer>.github.io/<repository>/`.
+### 12.1 Aufbau des Repositorys: ein Ordner pro Projekt
+
+```
+INSY/                       Git-Repository (GitHub: 187Matthias/INSY)
+├─ index.qmd                Startseite mit einer Karte pro Projekt
+├─ _quarto.yml              Einstellungen der ganzen Website
+├─ .github/workflows/pages.yml
+├─ CLAUDE.md                Regeln, gelten für alle Projekte
+├─ .venv/                   gemeinsame Python-Umgebung
+└─ Neural Network/          dieses Projekt
+   ├─ DOKUMENTATION.qmd     diese Datei, wird zur Projektseite
+   ├─ nn/  models/  web/    Code, exportierte Modelle, NN-Werkbank
+   └─ train_*.py  test_*.py  ki.py
+```
+
+- **Neues Projekt hinzufügen:** Ordner anlegen und darin eine `DOKUMENTATION.qmd` mit `title`, `subtitle`, `description` im Kopf schreiben. Die Startseite zeigt die Karte automatisch (`listing` in `index.qmd`), `_quarto.yml` muss nicht geändert werden.
+- **Befehle:** Die Skripte wechseln selbst in ihren Ordner. Sie laufen daher aus dem Hauptordner, z. B. `.venv\Scripts\python.exe "Neural Network\test_xor.py"`. Befehle weiter oben in dieser Doku ohne Pfad gelten im Ordner `Neural Network`.
+- **Adresse:** Die Projektseite liegt unter `https://187matthias.github.io/INSY/Neural%20Network/`, die Werkbank unter `.../Neural%20Network/web/`. Das Leerzeichen im Ordnernamen erscheint in der Adresse als `%20`.
+
+### 12.2 Git und GitHub Pages
+- `.gitignore` schließt `.venv/`, `__pycache__/`, `_site/`, `.quarto/`, die Skill-Ordner `.agents/` und `.claude/` sowie die Aufgaben-PDF aus.
+- `.github/workflows/pages.yml` rendert die Website bei jedem Push auf `main` und veröffentlicht sie auf GitHub Pages.
+- **Fehler 404 bei `deploy-pages`:** Pages war im Repository noch nicht eingeschaltet. Lösung: Settings → Pages → Source auf **GitHub Actions** stellen und den Workflow neu starten (Actions → letzter Lauf → Re-run all jobs). Bei einem privaten Repository geht Pages nur mit bezahltem Plan.
+- Geprüft nach dem Umbau: `test_neuron`, `test_layer`, `test_xor` und `test_7seg` laufen aus dem Hauptordner (XOR [0,0] 0.0276, [0,1] 0.9681, [1,0] 0.9681, [1,1] 0.0308; 7-Segment 10/10 Ziffern korrekt). Neutraining von XOR ergibt unveränderte Modelldateien.

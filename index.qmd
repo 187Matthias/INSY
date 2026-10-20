@@ -1,0 +1,18 @@
+---
+title: "INSY"
+subtitle: "Projekte aus dem Unterricht"
+lang: de
+# Die Karten entstehen automatisch aus der DOKUMENTATION.qmd jedes Projektordners
+listing:
+  contents: "*/DOKUMENTATION.qmd"
+  type: grid
+  fields: [title, subtitle, description, date]
+  sort: "date desc"
+  grid-columns: 2
+  max-description-length: 220
+page-layout: full
+---
+
+Jedes Projekt hat einen eigenen Ordner mit Code und Dokumentation. Ein Klick auf eine Karte öffnet die Doku des Projekts.
+
+Direkt ausprobieren: [NN-Werkbank](Neural%20Network/web/index.html) (XOR und 7-Segment-Netz im Browser).

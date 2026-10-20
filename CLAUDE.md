@@ -5,7 +5,7 @@ Ich baue ein eigenes, voll funktionsfähiges neuronales Netz in Python ohne ML-F
 Das Netz soll am Ende XOR lernen, speicherbar/ladbar sein und ein echtes, nachvollziehbares Netz sein.
 
 ## Aufgabenstellung / Unterlage
-- Die Aufgabe steht in `4AHITS_NN_from_scratch.pdf` in diesem Ordner. Sie ist die Referenz dafür, was gemacht werden soll.
+- Die Aufgabe steht in `Neural Network/4AHITS_NN_from_scratch.pdf`. Sie ist die Referenz dafür, was gemacht werden soll.
 - Bei Unklarheiten zuerst im PDF nachlesen, dann erst nachfragen.
 - Schrittweise vorgehen, in der Reihenfolge des PDFs (Part 1 → Part 6). Aktuell relevant: **Part 1 und Part 2**.
 
@@ -26,20 +26,29 @@ Das Netz soll am Ende XOR lernen, speicherbar/ladbar sein und ein echtes, nachvo
 - Danach: als `.json` exportieren, wieder laden, gleiche Vorhersagen prüfen
 
 ## Projektstruktur
+Der Hauptordner `INSY` ist das Git-Repository (GitHub `187Matthias/INSY`). Jedes Projekt hat einen eigenen Ordner mit einer `DOKUMENTATION.qmd`; die Startseite zeigt automatisch eine Karte pro Projekt.
 ```
-CLAUDE.md
-4AHITS_NN_from_scratch.pdf   Aufgabenstellung (nicht ändern)
-nn/                          Netz-Code (Neuron, Layer, NeuralNetwork)
-train_xor.py                 XOR trainieren + exportieren
-test_xor.py                  Laden + Testen
-models/                      exportierte .json / .txt / .h Dateien
+CLAUDE.md                          Regeln für alle Projekte
+index.qmd                          Startseite (Projektkarten)
+_quarto.yml                        Einstellungen der Website
+.github/workflows/pages.yml        veröffentlicht die Website auf GitHub Pages
+.venv/                             gemeinsame Python-Umgebung
+Neural Network/                    Projekt "Neuronales Netz from scratch"
+  DOKUMENTATION.qmd                Doku dieses Projekts (Projektseite)
+  4AHITS_NN_from_scratch.pdf       Aufgabenstellung (nicht ändern)
+  nn/                              Netz-Code (Neuron, Layer, NeuralNetwork)
+  train_xor.py, train_7seg.py      trainieren + exportieren
+  test_*.py                        Laden + Testen
+  models/                          exportierte .json / .txt / .h Dateien
+  web/                             NN-Werkbank (Website zum Ausprobieren)
 ```
 
 ## Dokumentation / Fortschritt
-- Die Dokumentation steht in `DOKUMENTATION.qmd` (Quarto, wird mit Git verwaltet und über GitHub Pages veröffentlicht) und zeigt, wie weit das Projekt aktuell ist (was fertig ist, was noch offen ist).
-- Nach jedem abgeschlossenen Schritt `DOKUMENTATION.qmd` aktualisieren (Änderungen, Testergebnisse, offene Punkte) und mit `.venv\Scripts\quarto.exe render` prüfen. Zum Einstieg in eine neue Sitzung zuerst dort nachlesen.
+- Die Dokumentation des Projekts steht in `Neural Network/DOKUMENTATION.qmd` (Quarto, wird mit Git verwaltet und über GitHub Pages veröffentlicht) und zeigt, wie weit das Projekt aktuell ist (was fertig ist, was noch offen ist).
+- Nach jedem abgeschlossenen Schritt `Neural Network/DOKUMENTATION.qmd` aktualisieren (Änderungen, Testergebnisse, offene Punkte) und im Hauptordner mit `.venv\Scripts\quarto.exe render` prüfen. Zum Einstieg in eine neue Sitzung zuerst dort nachlesen.
+- Neues Projekt: neuer Ordner mit eigener `DOKUMENTATION.qmd` (mit `title`, `subtitle`, `description` im Kopf). Die Startseite und `_quarto.yml` müssen dafür nicht geändert werden.
 
-- Token-Verbrauch: In `DOKUMENTATION.qmd` (Abschnitt "Token-Verbrauch pro Prompt") steht, wie viele Tokens pro Prompt verbraucht wurden. Am Ende **jedes** Prompts eine neue Zeile eintragen (Prompt kurz beschreiben, ungefähre Tokens, Summe anpassen) und im Text kurz erwähnen. Die Werte sind Näherungen aus dem "tokens left"-Zähler (Differenz Anfang/Ende des Prompts).
+- Token-Verbrauch: In `Neural Network/DOKUMENTATION.qmd` (Abschnitt "Token-Verbrauch pro Prompt") steht, wie viele Tokens pro Prompt verbraucht wurden. Am Ende **jedes** Prompts eine neue Zeile eintragen (Prompt kurz beschreiben, ungefähre Tokens, Summe anpassen) und im Text kurz erwähnen. Die Werte sind Näherungen aus dem "tokens left"-Zähler (Differenz Anfang/Ende des Prompts).
 
 ## SICHERHEITSREGELN (wichtig!)
 1. **Nichts löschen ohne Rückfrage.** Keine Datei, keinen Ordner und keinen größeren Codeabschnitt löschen oder überschreiben, ohne mich vorher zu fragen und ein klares Ja abzuwarten. Das gilt auch für `rm`, `del`, `git clean`, `git reset --hard` usw.
@@ -57,5 +66,6 @@ models/                      exportierte .json / .txt / .h Dateien
 - Keine unnötigen Abhängigkeiten, keine ML-Frameworks (TensorFlow erst in Part 3, und nur zum Vergleich).
 
 ## Befehle
-- Training: `python train_xor.py`
-- Test: `python test_xor.py`
+- Training: `python "Neural Network/train_xor.py"` (die Skripte wechseln selbst in ihren Ordner, funktioniert auch von dort mit `python train_xor.py`)
+- Test: `python "Neural Network/test_xor.py"`
+- Website rendern: `.venv\Scripts\quarto.exe render`

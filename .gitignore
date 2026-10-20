@@ -17,8 +17,5 @@ _site/
 .claude/
 skills-lock.json
 
-# alte Kopie der Doku, die Quelle ist jetzt DOKUMENTATION.qmd
-/DOKUMENTATION.md
-
 /.quarto/
 **/*.quarto_ipynb

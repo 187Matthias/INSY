@@ -1,5 +1,8 @@
 import numpy
 from nn import NeuralNetwork
+import os
+# Immer im Ordner dieses Skripts arbeiten, damit "models/..." von überall aus gefunden wird
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 X = [[0, 0], [0, 1], [1, 0], [1, 1]]
 Y = [[0], [1], [1], [0]]
